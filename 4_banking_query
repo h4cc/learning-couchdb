@@ -1,0 +1,30 @@
+#!/usr/bin/env php
+<?php
+
+include('functions.php');
+
+waitReq('GET', '/banking/');
+waitForInput();
+
+waitReq('GET', '/banking/_all_docs');
+waitForInput();
+
+waitReq('GET', '/banking/_all_docs?descending=true');
+waitForInput();
+
+waitReq('GET', '/banking/_all_docs?limit=1');
+waitForInput();
+
+waitReq('GET', '/banking/_all_docs?startkey="j"&endkey="k"');
+waitForInput();
+
+waitReq('GET', '/banking/_all_docs?include_docs=true');
+waitForInput();
+
+
+
+waitReq('GET', '/banking/_changes');
+waitForInput();
+
+waitReq('GET', '/banking/_changes?since=4');
+waitForInput();

@@ -1,0 +1,9 @@
+#!/usr/bin/env php
+<?php
+
+include('functions.php');
+
+
+waitReq('GET', '/');
+
+waitForInput();

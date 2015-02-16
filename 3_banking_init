@@ -1,0 +1,38 @@
+#!/usr/bin/env php
+<?php
+
+include('functions.php');
+
+silentReq('DELETE', '/banking');
+
+waitReq('GET', '/_all_dbs');
+waitForInput();
+
+waitReq('PUT', '/banking');
+waitForInput();
+
+waitReq('PUT', '/banking/julius-beckmann', ['type' => 'account', 'name' => 'Julius Bekmann']);
+waitForInput();
+
+$data = waitReq('GET', '/banking/julius-beckmann');
+waitForInput();
+
+waitReq('PUT', '/banking/julius-beckmann', ['type' => 'account', 'name' => 'Julius Beckmann']);
+waitForInput();
+
+waitReq('PUT', '/banking/julius-beckmann', ['type' => 'account', 'name' => 'Julius Beckmann', '_rev' => $data['_rev']]);
+waitForInput();
+
+$data = waitReq('GET', '/banking/julius-beckmann');
+waitForInput();
+
+
+waitReq('PUT', '/banking/bill-gates', ['type' => 'account', 'name' => 'Bill Gates']);
+waitForInput();
+
+
+waitReq('PUT', '/banking/'.rand(), ['type' => 'booking', 'owner' => 'julius-beckmann', 'value' => 100]);
+waitForInput();
+
+waitReq('PUT', '/banking/'.rand(), ['type' => 'booking', 'owner' => 'bill-gates', 'value' => 100000]);
+waitForInput();

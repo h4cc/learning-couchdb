@@ -1,0 +1,18 @@
+#!/usr/bin/env php
+<?php
+
+include('functions.php');
+
+silentReq('DELETE', '/hello_world');
+
+waitReq('GET', '/_all_dbs');
+waitForInput();
+
+waitReq('PUT', '/hello_world');
+waitForInput();
+
+waitReq('GET', '/hello_world');
+waitForInput();
+
+waitReq('DELETE', '/hello_world');
+waitForInput();
