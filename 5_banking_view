@@ -17,11 +17,16 @@ if(isset($data['_rev'])) {
 waitReq('PUT', '/banking/_design/balance', ['id' => '_design/balance', 
 'views' => [
 'byAccount' => ['map' => $balanceByAccountJs, 'reduce' => '_sum']
-
 ]]);
 waitForInput();
 
+waitReq('GET', '/banking/_design/balance/_info');
+waitForInput();
+
 waitReq('GET', '/banking/_design/balance/_view/byAccount');
+waitForInput();
+
+waitReq('GET', '/banking/_design/balance/_view/byAccount?reduce=false');
 waitForInput();
 
 waitReq('GET', '/banking/_design/balance/_view/byAccount?group_level=1');

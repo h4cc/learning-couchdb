@@ -1,0 +1,35 @@
+#!/usr/bin/env php
+<?php
+
+include('functions.php');
+
+
+waitReq('POST', '/banking/', ['type' => 'transfer', 'from' => 'bill-gates', 'to' => 'julius-beckmann', 'value' => 1000]);
+waitForInput();
+
+waitReq('GET', '/banking/_design/balance/_view/byAccount?group_level=1');
+waitForInput();
+
+
+$balanceByAccountJs = 'function(doc) {
+  if(\'booking\' === doc.type) {
+    emit(doc.owner, doc.value);
+  }
+  if(\'transfer\' === doc.type) {
+    emit(doc.from, doc.value*-1);
+    emit(doc.to,   doc.value);
+  }
+}';
+
+$data = silentReq('GET', '/banking/_design/balance');
+waitReq('PUT', '/banking/_design/balance', ['_id' => '_design/balance', '_rev' => $data['_rev'],
+'views' => [
+'byAccount' => ['map' => $balanceByAccountJs, 'reduce' => '_sum']
+]]);
+waitForInput();
+
+waitReq('GET', '/banking/_design/balance/_view/byAccount');
+waitForInput();
+
+waitReq('GET', '/banking/_design/balance/_view/byAccount?group_level=1');
+waitForInput();

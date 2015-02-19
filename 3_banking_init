@@ -11,7 +11,7 @@ waitForInput();
 waitReq('PUT', '/banking');
 waitForInput();
 
-waitReq('PUT', '/banking/julius-beckmann', ['type' => 'account', 'name' => 'Julius Bekmann']);
+waitReq('POST', '/banking/', ['_id' => 'julius-beckmann', 'type' => 'account', 'name' => 'Julius Bekmann']);
 waitForInput();
 
 $data = waitReq('GET', '/banking/julius-beckmann');
@@ -23,16 +23,19 @@ waitForInput();
 waitReq('PUT', '/banking/julius-beckmann', ['type' => 'account', 'name' => 'Julius Beckmann', '_rev' => $data['_rev']]);
 waitForInput();
 
-$data = waitReq('GET', '/banking/julius-beckmann');
+$data = waitReq('GET', '/banking/julius-beckmann?revs_info=true');
+waitForInput();
+
+$data = waitReq('GET', '/banking/julius-beckmann?rev='.$data["_revs_info"][1]['rev']);
 waitForInput();
 
 
-waitReq('PUT', '/banking/bill-gates', ['type' => 'account', 'name' => 'Bill Gates']);
+waitReq('POST', '/banking/', ['_id' => 'bill-gates', 'type' => 'account', 'name' => 'Bill Gates']);
 waitForInput();
 
 
-waitReq('PUT', '/banking/'.rand(), ['type' => 'booking', 'owner' => 'julius-beckmann', 'value' => 100]);
+waitReq('POST', '/banking/', ['type' => 'booking', 'owner' => 'julius-beckmann', 'value' => 100]);
 waitForInput();
 
-waitReq('PUT', '/banking/'.rand(), ['type' => 'booking', 'owner' => 'bill-gates', 'value' => 100000]);
+waitReq('POST', '/banking/', ['type' => 'booking', 'owner' => 'bill-gates', 'value' => 100000]);
 waitForInput();
