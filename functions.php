@@ -1,9 +1,25 @@
 <?php
 
+$options = array(
+  'DO_WAIT' => true,
+);
+foreach($argv as $value) {
+  switch(strtolower($value)) {
+      case '--no-wait':
+        $options['DO_WAIT'] = false;
+  }
+}
+foreach($options as $name => $value) {
+  define($name, $value);
+}
+
+
 $baseUrl = 'http://localhost:5984';
 
 function waitForInput() {
-    fgets(fopen("php://stdin","r"));
+    if(DO_WAIT) {
+      fgets(fopen("php://stdin","r"));
+    }
 }
 
 function printJson($data) {
