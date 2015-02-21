@@ -1,0 +1,88 @@
+#!/usr/bin/env php
+<?php
+
+function drawLotto()
+{
+    $drawn = [];
+    while(count($drawn) < 6) {
+        $rand = rand(1, 49);
+        if(!in_array($rand, $drawn)) {
+            $drawn[] = $rand;
+        }
+    }
+    sort($drawn);
+    return $drawn;
+}
+
+include('functions.php');
+
+silentReq('DELETE', '/lotto');
+waitReq('PUT', '/lotto');
+
+$data = silentReq('GET', '/lotto/_design/stats');
+if(isset($data['_rev'])) {
+    silentReq('DELETE', '/lotto/_design/stats?rev='.$data['_rev']);
+}
+waitReq('PUT', '/lotto/_design/stats', [
+        'views' => [
+            'by_number' => [
+                'map' => 'function(doc) {
+                            if(\'draw\' == doc.type) {
+                                doc.numbers.forEach(function(number) {
+                                    emit([number], 1);
+                                });
+                              }
+                            }',
+                'reduce' => '_count'
+            ],
+            'draws_by_date' => [
+                'map' => 'function(doc) {
+                            if(\'draw\' == doc.type) {
+                                var date = new Date(Date.parse(doc.date));
+                                doc.numbers.forEach(function(number) {
+                                    emit([date.getFullYear(), date.getMonth(), date.getDay()], number);
+                                });
+                              }
+                            }',
+                'reduce' => '_count'
+            ]
+        ],
+        'validate_doc_update' => 'function(doc) {
+            if(\'draw\' == doc.type) {
+                if(isNaN(Date.parse(doc.date))) {
+                    throw({forbidden : \'Invalid Date format given\'});
+                }
+              }
+            }'
+    ]
+);
+
+waitForInput();
+
+$ts = time();
+foreach (range(1, 365*10) as $i) {
+    $date = DateTime::createFromFormat("U", $ts);
+    $data = ['_id' => 'draw_'.date_format($date, 'Y-m-d'), 'type' => 'draw', 'date' => date_format($date, 'c'), 'numbers' => drawLotto()];
+    echo $data['date'], "\n";
+    silentReq('POST', '/lotto/', $data);
+    $ts -= 60 * 60 * 24;
+}
+
+waitReq('GET', '/lotto/_all_docs?include_docs=true&limit=10');
+waitForInput();
+
+waitReq('GET', '/lotto/_design/stats/_view/by_number?group_level=0&limit=10');
+waitForInput();
+
+waitReq('GET', '/lotto/_design/stats/_view/by_number?group_level=1&limit=10');
+waitForInput();
+
+waitReq('GET', '/lotto/_design/stats/_view/draws_by_date?group_level=0&limit=10');
+waitForInput();
+
+waitReq('GET', '/lotto/_design/stats/_view/draws_by_date?group_level=1&limit=10');
+waitForInput();
+
+waitReq('GET', '/lotto/_design/stats/_view/draws_by_date?group_level=2&limit=10');
+waitForInput();
+

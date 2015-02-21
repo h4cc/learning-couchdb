@@ -1,0 +1,129 @@
+#!/usr/bin/env php
+<?php
+
+include('functions.php');
+
+silentReq('DELETE', '/blog');
+waitReq('PUT', '/blog');
+
+$data = silentReq('GET', '/blog/_design/stats');
+if(isset($data['_rev'])) {
+    silentReq('DELETE', '/blog/_design/stats?rev='.$data['_rev']);
+}
+
+waitReq('PUT', '/blog/_design/posts', [
+        'views' => [
+            'by_tag' => [
+                'map' => 'function(doc) {
+	if(\'post\' == doc.type) {
+		doc.tags.forEach(function(tag) {
+		    emit([tag, doc.date], doc);
+		});
+	}
+}',
+                'reduce' => '_count'
+            ],
+            'by_category' => [
+                'map' => 'function(doc) {
+	if(\'post\' == doc.type) {
+		doc.categories.forEach(function(cat) {
+			emit([cat, doc.date] , doc);
+		});
+	}
+}',
+                'reduce' => '_count'
+            ],
+            'by_date' => [
+                'map' => 'function(doc) {
+	if(\'post\' == doc.type) {
+        var date = new Date(Date.parse(doc.date));
+        emit([date.getFullYear(), date.getMonth(), date.getDay()], doc);
+	}
+}',
+                'reduce' => '_count'
+            ]
+        ],
+        'validate_doc_update' => 'function(doc) {
+            if(\'draw\' == doc.type) {
+                if(isNaN(Date.parse(doc.date))) {
+                    throw({forbidden : \'Invalid Date format given\'});
+                }
+              }
+            }'
+    ]
+);
+
+waitReq('PUT', '/blog/_design/comments', [
+        'views' => [
+            'by_post' => [
+                'map' => 'function(doc) {
+	if(\'comment\' == doc.type) {
+	    emit([doc.post_id, doc.date], doc);
+	}
+}',
+                'reduce' => '_count'
+            ]
+    ]
+]);
+
+waitForInput();
+
+function randomTags($amount) {
+    $tags = [];
+    foreach(range(1, $amount) as $i) {
+        $tags[] = 'Tag'.$i;
+    }
+    shuffle($tags);
+    return $tags;
+}
+
+function randomCategories($amount) {
+    $cats = [];
+    foreach(range(1, $amount) as $i) {
+        $cats[] = 'Cat'.rand(1, 10);
+    }
+    shuffle($cats);
+    return $cats;
+}
+
+$ts = time();
+$postIdMax = 10;
+foreach (range(1, $postIdMax) as $i) {
+    $date = DateTime::createFromFormat("U", $ts);
+    $data = [
+        '_id' => 'post_'.$i,
+        'type' => 'post',
+        'date' => date_format($date, 'c'),
+        'categories' => randomCategories(rand(1, 2)),
+        'tags' => randomTags(rand(1, 10)),
+        'title' => 'Post '.$i,
+        'content' => 'Lorem '.$i.' ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.'
+    ];
+    echo $data['date'], " post\n";
+    silentReq('POST', '/blog/', $data);
+    $ts -= 60 * 60 * 24;
+}
+
+$ts = time();
+foreach (range(1, 100) as $i) {
+    $date = DateTime::createFromFormat("U", $ts);
+    $data = [
+        '_id' => 'comment_'.$i,
+        'type' => 'comment',
+        'date' => date_format($date, 'c'),
+        'post_id' => rand(1, $postIdMax),
+        'comment' => 'Foo '.$i.' barto.'
+    ];
+    echo $data['date'], " comment\n";
+    silentReq('POST', '/blog/', $data);
+    $ts -= 60 * 60 * 24;
+}
+
+waitReq('GET', '/blog/_all_docs?include_docs=true&limit=10');
+waitForInput();
+
+waitReq('GET', '/blog/_design/posts/_view/by_tag?group_level=1');
+waitForInput();
+
+waitReq('GET', '/blog/_design/posts/_view/by_tag?key='.rawurlencode('"Tag1"'));
+waitForInput();

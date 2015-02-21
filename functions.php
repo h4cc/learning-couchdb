@@ -82,7 +82,9 @@ function req($method, $url, $content=null, $wait=false, $silent=false) {
      if($content) {
        echo "\n", json_encode(json_decode($content, true), JSON_PRETTY_PRINT);
      }
-     waitForInput();
+     if($wait) {
+       waitForInput();
+     }
    }
 
    
