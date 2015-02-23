@@ -17,7 +17,7 @@ waitReq('PUT', '/blog/_design/posts', [
                 'map' => 'function(doc) {
 	if(\'post\' == doc.type) {
 		doc.tags.forEach(function(tag) {
-		    emit([tag, doc.date], doc);
+		    emit([tag, doc.date], {_id: doc._id});
 		});
 	}
 }',
@@ -125,5 +125,11 @@ waitForInput();
 waitReq('GET', '/blog/_design/posts/_view/by_tag?group_level=1');
 waitForInput();
 
-waitReq('GET', '/blog/_design/posts/_view/by_tag?key='.rawurlencode('"Tag1"'));
+waitReq('GET', '/blog/_design/posts/_view/by_tag?startkey=["Tag1"]&endkey=["Tag1\ufff0"]&reduce=true');
+waitForInput();
+
+waitReq('GET', '/blog/_design/posts/_view/by_tag?startkey=["Tag1"]&endkey=["Tag1\ufff0"]&reduce=false');
+waitForInput();
+
+waitReq('GET', '/blog/_design/posts/_view/by_tag?startkey=["Tag1"]&endkey=["Tag1\ufff0"]&reduce=false&include_docs=true');
 waitForInput();
